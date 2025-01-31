@@ -20,10 +20,10 @@ docker-compose up --build
 
 ## Tag and Push Docker Image to Docker Hub
 ```bash
-docker tag my-vite-app-backend adamsetiaji/recaptcha-solver-backend:latest
+docker tag recaptcha-solver-backend adamsetiaji/recaptcha-solver-backend:latest
 docker push adamsetiaji/recaptcha-solver-backend:latest
 
-docker tag my-vite-app-frontend adamsetiaji/recaptcha-solver-frontend:latest
+docker tag recaptcha-solver-frontend adamsetiaji/recaptcha-solver-frontend:latest
 docker push adamsetiaji/recaptcha-solver-frontend:latest
 ```
 
