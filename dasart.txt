@@ -54,6 +54,6 @@ docker push adamsetiaji/recaptcha-solver-frontend:latest
 
 
 git add .
-git commit -m "Initial commit: menambah perbaikan frontend"
+git commit -m "Initial commit: perbaikan docker-compose"
 git remote add origin https://github.com/adamsetiaji/recaptcha-solver.git
 git push -u origin master
