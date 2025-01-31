@@ -8,7 +8,37 @@ Automated reCAPTCHA solver with monitoring dashboard.
 - Task management
 - Live log viewer
 
-## Installation
+## Check Docker Image List
+```bash
+docker images
+```
+
+## Build Docker Images Locally
+```bash
+docker-compose up --build
+```
+
+## Tag and Push Docker Image to Docker Hub
+```bash
+docker tag my-vite-app-backend adamsetiaji/recaptcha-solver-backend:latest
+docker push adamsetiaji/recaptcha-solver-backend:latest
+
+docker tag my-vite-app-frontend adamsetiaji/recaptcha-solver-frontend:latest
+docker push adamsetiaji/recaptcha-solver-frontend:latest
+```
+
+
+## Push to Github Repository
+```bash
+git remote add origin https://github.com/adamsetiaji/recaptcha-solver.git
+
+git add .
+git commit -m "Initial commit: Add Logo"
+git push -u origin master --force
+```
+
+
+## CasaOS Deployment Configuration
 ```bash
 name: ravishing_takamitsu
 services:
@@ -92,3 +122,4 @@ x-casaos:
   title:
     custom: Recaptcha Solver
     en_us: backend
+```
