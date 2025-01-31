@@ -1,0 +1,59 @@
+my-vite-app/
+├── frontend/
+│   ├── src/
+│   │   ├── assets/
+│   │   │   └── react.svg [DONE]
+│   │   ├── components/
+│   │   │   └── RecaptchaSolverMonitor.tsx [DONE]
+│   │   ├── App.css [BELUM]
+│   │   ├── App.tsx [BELUM]
+│   │   ├── index.css [BELUM]
+│   │   ├── main.tsx [BELUM]
+│   │   └── vite-env.d.ts [BELUM]
+│   ├── public/
+│   │   └── vite.svg [DONE]
+│   ├── .eslintrc.cjs [BELUM]
+│   ├── .gitignore [BELUM]
+│   ├── index.html [BELUM]
+│   ├── package.json [BELUM]
+│   ├── postcss.config.js [BELUM]
+│   ├── README.md [BELUM]
+│   ├── tailwind.config.js [BELUM]
+│   ├── tsconfig.json [BELUM]
+│   ├── tsconfig.node.json [BELUM]
+│   └── vite.config.ts [BELUM]
+└── backend/
+    ├── src/
+    │   ├── config/
+    │   │   └── port.js
+    │   ├── services/
+    │   │   └── recaptchaSolver.js
+    │   ├── utils/
+    │   │   └── queue.js
+    │   └── app.js
+    ├── Dockerfile
+    └── package.json
+
+
+docker build -t adamsetiaji/recaptcha-solver:latest .
+
+docker images
+
+docker tag recaptcha-solver:latest adamsetiaji/recaptcha-solver:latest
+
+docker push adamsetiaji/recaptcha-solver:latest
+docker push adamsetiaji/recaptcha-solver:v1.0.1
+
+
+docker tag my-vite-app-backend adamsetiaji/recaptcha-solver-backend:latest
+docker push adamsetiaji/recaptcha-solver-backend:latest
+
+
+docker tag my-vite-app-frontend adamsetiaji/recaptcha-solver-frontend:latest
+docker push adamsetiaji/recaptcha-solver-frontend:latest
+
+
+git add .
+git commit -m "Initial commit: menambah perbaikan frontend"
+git remote add origin https://github.com/adamsetiaji/recaptcha-solver.git
+git push -u origin master
