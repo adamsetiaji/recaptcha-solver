@@ -1,56 +1,101 @@
 ﻿├── my-vite-app
-│   ├── .env
-│   ├── .env.example
-│   ├── .gitignore
+│   ├── .env [BELUM]
+│   ├── .env.example [BELUM]
+│   ├── .gitignore [BELUM]
 │   ├── backend
-│   │   ├── .dockerignore
-│   │   ├── .env
-│   │   ├── .env.development
-│   │   ├── .env.example
-│   │   ├── .env.production
-│   │   ├── Dockerfile
+│   │   ├── .dockerignore [BELUM]
+│   │   ├── .env [BELUM]
+│   │   ├── .env.development [BELUM]
+│   │   ├── .env.example [BELUM]
+│   │   ├── .env.production [BELUM]
+│   │   ├── Dockerfile [BELUM]
 │   │   ├── libs
 │   │   │   └── rektCaptcha
-│   │   ├── package.json
+│   │   │       ├── _metadata
+│   │   │       │   └── generated_indexed_rulesets
+│   │   │       │       └── _ruleset1 [BELUM]
+│   │   │       ├── background.js [BELUM]
+│   │   │       ├── dist
+│   │   │       │   ├── ort-wasm.wasm [BELUM]
+│   │   │       │   ├── ort-wasm-simd.wasm [BELUM]
+│   │   │       │   ├── ort-wasm-simd-threaded.wasm [BELUM]
+│   │   │       │   └── ort-wasm-threaded.wasm [BELUM]
+│   │   │       ├── icons
+│   │   │       │   ├── icon_128.png [BELUM]
+│   │   │       │   ├── icon_16.png [BELUM]
+│   │   │       │   ├── icon_32.png [BELUM]
+│   │   │       │   └── icon_48.png [BELUM]
+│   │   │       ├── manifest.json [BELUM]
+│   │   │       ├── models
+│   │   │       │   ├── bicycle.ort [BELUM]
+│   │   │       │   ├── bus.ort [BELUM]
+│   │   │       │   ├── car.ort [BELUM]
+│   │   │       │   ├── crosswalk.ort [BELUM]
+│   │   │       │   ├── fire_hydrant.ort [BELUM]
+│   │   │       │   ├── mask-yolov5-seg.ort [BELUM]
+│   │   │       │   ├── motorcycle.ort [BELUM]
+│   │   │       │   ├── nms-yolov5-det.ort [BELUM]
+│   │   │       │   ├── traffic_light.ort [BELUM]
+│   │   │       │   └── yolov5-seg.ort [BELUM]
+│   │   │       ├── popup.css [BELUM]
+│   │   │       ├── popup.html [BELUM]
+│   │   │       ├── popup.js [BELUM]
+│   │   │       ├── recaptcha.js [BELUM]
+│   │   │       ├── recaptcha.js.LICENSE.txt [BELUM]
+│   │   │       ├── recaptcha-visibility.js [BELUM]
+│   │   │       ├── rules.json [BELUM]
+│   │   │       ├── setup.html [BELUM]
+│   │   │       └── setup.js [BELUM]
+│   │   ├── package.json [BELUM]
 │   │   ├── src
-│   │   │   ├── app.js
+│   │   │   ├── app.js [BELUM]
 │   │   │   ├── config
-│   │   │   │   └── port.js
+│   │   │   │   └── port.js [BELUM]
 │   │   │   ├── services
-│   │   │   │   └── recaptchaSolver.js
+│   │   │   │   └── recaptchaSolver.js [BELUM]
 │   │   │   └── utils
-│   │   │       └── queue.js
-│   │   └── start.sh
-│   ├── direktori.txt
-│   ├── docker-compose.yml
-│   ├── Dockerfile
+│   │   │       └── queue.js [BELUM]
+│   │   └── start.sh [BELUM]
+│   ├── direktori.txt [BELUM]
+│   ├── docker-compose.yml [BELUM]
+│   ├── Dockerfile [BELUM]
 │   ├── frontend
-│   │   ├── .dockerignore
-│   │   ├── .env
-│   │   ├── .env.development
-│   │   ├── .env.example
-│   │   ├── .env.production
-│   │   ├── .eslintrc.cjs
-│   │   ├── .gitignore
-│   │   ├── Dockerfile
-│   │   ├── index.html
-│   │   ├── package.json
-│   │   ├── postcss.config.js
+│   │   ├── .dockerignore [BELUM]
+│   │   ├── .env [BELUM]
+│   │   ├── .env.development [BELUM]
+│   │   ├── .env.example [BELUM]
+│   │   ├── .env.production [BELUM]
+│   │   ├── .eslintrc.cjs [BELUM]
+│   │   ├── .gitignore [BELUM]
+│   │   ├── direktori.txt [BELUM]
+│   │   ├── Dockerfile [BELUM]
+│   │   ├── index.html [BELUM]
+│   │   ├── package.json [BELUM]
+│   │   ├── package-lock.json [BELUM]
+│   │   ├── postcss.config.js [BELUM]
 │   │   ├── public
-│   │   │   └── vite.svg
+│   │   │   └── vite.svg [BELUM]
 │   │   ├── src
-│   │   │   ├── App.css
-│   │   │   ├── App.tsx
+│   │   │   ├── App.tsx [BELUM]
 │   │   │   ├── assets
-│   │   │   │   └── react.svg
+│   │   │   │   └── react.svg [BELUM]
 │   │   │   ├── components
-│   │   │   │   └── RecaptchaSolverMonitor.tsx
-│   │   │   ├── index.css
-│   │   │   ├── main.tsx
-│   │   │   └── vite-env.d.ts
-│   │   ├── tailwind.config.js
-│   │   ├── tsconfig.json
-│   │   ├── tsconfig.node.json
-│   │   └── vite.config.ts
-│   ├── README.md
-│   └── recaptcha-solver.png
+│   │   │   │   └── Layout
+│   │   │   │       ├── Layout.tsx [BELUM]
+│   │   │   │       └── Sidebar.tsx [BELUM]
+│   │   │   ├── index.css [BELUM]
+│   │   │   ├── main.tsx [BELUM]
+│   │   │   ├── pages
+│   │   │   │   ├── Dashboard.tsx [BELUM]
+│   │   │   │   ├── FunctionRequests.tsx [BELUM]
+│   │   │   │   ├── RecaptchaSolverMonitor.tsx [BELUM]
+│   │   │   │   ├── Setting.tsx [BELUM]
+│   │   │   │   └── Users.tsx [BELUM]
+│   │   │   └── vite-env.d.ts [BELUM]
+│   │   ├── tailwind.config.js [BELUM]
+│   │   ├── tsconfig.json [BELUM]
+│   │   ├── tsconfig.node.json [BELUM]
+│   │   └── vite.config.ts [BELUM]
+│   ├── getTreeDirectory.txt [BELUM]
+│   ├── README.md [BELUM]
+│   └── recaptcha-solver.png [BELUM]

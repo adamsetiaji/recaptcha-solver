@@ -1,15 +1,8 @@
-// frontend/scr/components/RecaptchaSolverMonitor.tsx
+// frontend/src/pages/RecaptchaSolverMonitor.tsx
 import { FC, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { ActivitySquare, Clock, CheckCircle, TrendingUp, Play, AlertCircle, Ban, Copy, Check, calculateAverageDuration } from 'lucide-react';
+import { ActivitySquare, Clock, CheckCircle, TrendingUp, Play, AlertCircle, Ban, Copy, Check } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-
-const BACKEND_URL = import.meta.env.NODE_ENV === 'production'
-  ? import.meta.env.VITE_BACKEND_URL
-  : 'http://localhost:3000';
-
-const socket = io(BACKEND_URL);
 
 interface TaskStats {
   queueLength: number;
@@ -39,6 +32,12 @@ interface TaskStats {
   }>;
 }
 
+const BACKEND_URL = import.meta.env.NODE_ENV === 'production'
+  ? import.meta.env.VITE_BACKEND_URL
+  : 'http://localhost:3000';
+
+const socket = io(BACKEND_URL);
+
 const CopyButton: FC<{ text: string }> = ({ text }) => {
   const [copied, setCopied] = useState(false);
 
@@ -62,9 +61,6 @@ const CopyButton: FC<{ text: string }> = ({ text }) => {
   );
 };
 
-
-
-
 const TaskHistoryItem: FC<{ task: TaskStats['taskHistory'][0] }> = ({ task }) => {
   return (
     <div className="p-4 border-b last:border-b-0">
@@ -74,24 +70,26 @@ const TaskHistoryItem: FC<{ task: TaskStats['taskHistory'][0] }> = ({ task }) =>
             {task.status}
           </span>
 
-          <span className="ml-2 text-sm px-2 py-1 text-gray-600 rounded-full">
+          <span className="ml-2 text-sm px-2 py-1 text-gray-600">
             {task.data.result.token.message}
           </span>
 
-          <span className="ml-2 text-sm text-gray-600 flex items-center">
-            ID: {task.taskId}
-            <CopyButton text={task.taskId} />
-          </span>
-
-          {task.data.result.duration && (
-            <span className="ml-2 text-sm text-gray-500">
-              Duration: {Math.floor(task.data.result.duration / 1000)}s
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-sm text-gray-600 flex items-center">
+              ID: {task.taskId}
+              <CopyButton text={task.taskId} />
             </span>
-          )}
+
+            {task.data.result.duration && (
+              <span className="text-sm text-gray-500">
+                Duration: {Math.floor(task.data.result.duration / 1000)}s
+              </span>
+            )}
+          </div>
 
           {task.data.result.token.gRecaptchaResponse && (
             <div className="mt-2 text-sm text-gray-600 flex items-center">
-              <span className="ml-2 text-gray-500">
+              <span className="text-gray-500">
                 Token: {task.data.result.token.gRecaptchaResponse.substring(0, 20)}...
               </span>
               <CopyButton text={task.data.result.token.gRecaptchaResponse} />
@@ -134,116 +132,24 @@ const calculateAverageDuration = (tasks: TaskStats['taskHistory']) => {
   return Math.round(totalDuration / completedTasks.length);
 };
 
-const PerformanceChart: FC<{ tasks: TaskStats['taskHistory'] }> = ({ tasks }) => {
-  const chartData = tasks.map((task, index, array) => {
-    const completedTasksUpToNow = array.slice(0, index + 1).filter(t => t.status === 'completed');
-    const avgDuration = completedTasksUpToNow.length > 0
-      ? completedTasksUpToNow.reduce((sum, t) =>
-        sum + (t.data.result.duration ? Math.floor(t.data.result.duration / 1000) : 0), 0)
-      / completedTasksUpToNow.length
-      : 0;
-
-    return {
-      time: new Date(task.timestamp).toLocaleTimeString(),
-      activeWorkers: task.data.result.activeWorkers,
-      queueLength: task.data.result.queueLength,
-      taskSuccess: array.slice(0, index + 1).filter(t => t.status === 'completed').length,
-      taskFailed: array.slice(0, index + 1).filter(t => t.status === 'failed').length,
-      avgDuration: Math.round(avgDuration),
-    };
-  }).reverse();
-
-  return (
-    <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
-      <h2 className="text-lg font-semibold mb-4">Performance Graph</h2>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="time"
-              tick={{ fontSize: 12 }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              yAxisId="left"
-              label={{ value: 'Count', angle: -90, position: 'insideLeft' }}
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              label={{ value: 'Avg Duration (s)', angle: 90, position: 'insideRight' }}
-            />
-            <Tooltip />
-            <Legend />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="activeWorkers"
-              stroke="#3B82F6"
-              name="Active Workers"
-              dot={false}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="queueLength"
-              stroke="#EAB308"
-              name="Tasks in Queue"
-              dot={false}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="taskSuccess"
-              stroke="#22C55E"
-              name="Tasks Success"
-              dot={false}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="taskFailed"
-              stroke="#EF4444"
-              name="Tasks Failed"
-              dot={false}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="avgDuration"
-              stroke="#8B5CF6"
-              name="Avg Solve Duration"
-              dot={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-};
-
-
-
 const DashboardMetric: FC<{
   icon: typeof Clock;
   title: string;
   value: string | number;
   color: string;
 }> = ({ icon: Icon, title, value, color }) => (
-  <div className="bg-white rounded-lg p-6 shadow-sm">
+  <div className="bg-white rounded-lg p-6 shadow-sm h-full">
     <div className="flex items-center gap-4">
-      <div className={`p-2 rounded-full ${color}`}>
-        <Icon className="w-6 h-6 text-white" />
+      <div className={`p-3 rounded-full ${color}`}>
+        <Icon className="w-8 h-8 text-white" />
       </div>
       <div>
         <p className="text-sm text-gray-500">{title}</p>
-        <p className="text-2xl font-semibold">{value}</p>
+        <p className="text-3xl font-semibold">{value}</p>
       </div>
     </div>
   </div>
 );
-
 
 const RecaptchaSolverMonitor: FC = () => {
   const [stats, setStats] = useState<TaskStats>({
@@ -288,7 +194,6 @@ const RecaptchaSolverMonitor: FC = () => {
 
   const handleStartTask = async () => {
     if (isProcessing) return;
-
     try {
       setIsProcessing(true);
       await fetch(`${BACKEND_URL}/api/createTask`, {
@@ -303,15 +208,26 @@ const RecaptchaSolverMonitor: FC = () => {
     }
   };
 
+  const chartData = stats.taskHistory.map((task, index, array) => ({
+    time: new Date(task.timestamp).toLocaleTimeString(),
+    activeWorkers: task.data.result.activeWorkers,
+    queueLength: task.data.result.queueLength,
+    taskSuccess: array.slice(0, index + 1).filter(t => t.status === 'completed').length,
+    taskFailed: array.slice(0, index + 1).filter(t => t.status === 'failed').length,
+    avgDuration: calculateAverageDuration(array.slice(0, index + 1)),
+  })).reverse();
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6">
       <div className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold mb-2">reCAPTCHA Solver Monitor</h1>
-          <div className={`inline-flex items-center px-3 py-1 rounded-full ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}>
-            <span className={`w-2 h-2 rounded-full mr-2 ${isConnected ? 'bg-green-500' : 'bg-red-500'
-              }`} />
+          <div className={`inline-flex items-center px-3 py-1 rounded-full ${
+            isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            <span className={`w-2 h-2 rounded-full mr-2 ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`} />
             {isConnected ? 'System Active' : 'System Inactive'}
           </div>
         </div>
@@ -319,17 +235,18 @@ const RecaptchaSolverMonitor: FC = () => {
         <button
           onClick={handleStartTask}
           disabled={isProcessing}
-          className={`px-4 py-2 rounded-lg flex items-center gap-2 ${isProcessing
-            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            : 'bg-blue-500 text-white hover:bg-blue-600'
-            }`}
+          className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
+            isProcessing
+              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-500 text-white hover:bg-blue-600'
+          }`}
         >
           <Play className="w-4 h-4" />
           {isProcessing ? 'Processing...' : 'Start Task'}
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-6 mb-8">
         <DashboardMetric
           icon={Clock}
           title="Active Workers"
@@ -374,14 +291,81 @@ const RecaptchaSolverMonitor: FC = () => {
         />
       </div>
 
-      <PerformanceChart tasks={stats.taskHistory} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Performance Graph</h2>
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fontSize: 12 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  yAxisId="left"
+                  label={{ value: 'Count', angle: -90, position: 'insideLeft' }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  label={{ value: 'Avg Duration (s)', angle: 90, position: 'insideRight' }}
+                />
+                <Tooltip />
+                <Legend />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="activeWorkers"
+                  stroke="#3B82F6"
+                  name="Active Workers"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="queueLength"
+                  stroke="#EAB308"
+                  name="Tasks in Queue"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="taskSuccess"
+                  stroke="#22C55E"
+                  name="Tasks Success"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="taskFailed"
+                  stroke="#EF4444"
+                  name="Tasks Failed"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="avgDuration"
+                  stroke="#8B5CF6"
+                  name="Avg Solve Duration"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">Task History</h2>
-        <div className="h-80 overflow-y-auto">
-          {stats.taskHistory.map(task => (
-            <TaskHistoryItem key={task.taskId} task={task} />
-          ))}
+        <div className="bg-white rounded-lg p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Task History</h2>
+          <div className="h-96 overflow-y-auto">
+            {stats.taskHistory.map(task => (
+              <TaskHistoryItem key={task.taskId} task={task} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
