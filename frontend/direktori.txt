@@ -1,0 +1,28 @@
+﻿├── frontend
+│   ├── .dockerignore
+│   ├── .env
+│   ├── .env.development
+│   ├── .env.example
+│   ├── .env.production
+│   ├── .eslintrc.cjs
+│   ├── .gitignore
+│   ├── direktori.txt
+│   ├── Dockerfile
+│   ├── index.html
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── public
+│   │   └── vite.svg
+│   ├── src
+│   │   ├── App.tsx
+│   │   ├── assets
+│   │   │   └── react.svg
+│   │   ├── components
+│   │   │   └── RecaptchaSolverMonitor.tsx
+│   │   ├── index.css
+│   │   ├── main.tsx
+│   │   └── vite-env.d.ts
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts

@@ -13,7 +13,7 @@ export DISPLAY=:99
 fluxbox &
 
 # Start VNC server
-x11vnc -display :99 -forever -nopw &
+x11vnc -ncache 10 -display :99 -forever -nopw &
 
 # Start the application
 npm start

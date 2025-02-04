@@ -1,0 +1,56 @@
+﻿├── my-vite-app
+│   ├── .env
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── backend
+│   │   ├── .dockerignore
+│   │   ├── .env
+│   │   ├── .env.development
+│   │   ├── .env.example
+│   │   ├── .env.production
+│   │   ├── Dockerfile
+│   │   ├── libs
+│   │   │   └── rektCaptcha
+│   │   ├── package.json
+│   │   ├── src
+│   │   │   ├── app.js
+│   │   │   ├── config
+│   │   │   │   └── port.js
+│   │   │   ├── services
+│   │   │   │   └── recaptchaSolver.js
+│   │   │   └── utils
+│   │   │       └── queue.js
+│   │   └── start.sh
+│   ├── direktori.txt
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── frontend
+│   │   ├── .dockerignore
+│   │   ├── .env
+│   │   ├── .env.development
+│   │   ├── .env.example
+│   │   ├── .env.production
+│   │   ├── .eslintrc.cjs
+│   │   ├── .gitignore
+│   │   ├── Dockerfile
+│   │   ├── index.html
+│   │   ├── package.json
+│   │   ├── postcss.config.js
+│   │   ├── public
+│   │   │   └── vite.svg
+│   │   ├── src
+│   │   │   ├── App.css
+│   │   │   ├── App.tsx
+│   │   │   ├── assets
+│   │   │   │   └── react.svg
+│   │   │   ├── components
+│   │   │   │   └── RecaptchaSolverMonitor.tsx
+│   │   │   ├── index.css
+│   │   │   ├── main.tsx
+│   │   │   └── vite-env.d.ts
+│   │   ├── tailwind.config.js
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.node.json
+│   │   └── vite.config.ts
+│   ├── README.md
+│   └── recaptcha-solver.png

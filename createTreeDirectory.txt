@@ -1,0 +1,66 @@
+function Get-DirectoryTree {
+    param (
+        [string]$Path = ".",
+        [string]$IndentChar = "│   ",
+        [string]$Prefix = "",
+        [switch]$LastItem,
+        [string]$ExcludeFolders = "node_modules,.git"
+    )
+
+    try {
+        $name = Split-Path -Leaf $Path
+        
+        if ($LastItem) {
+            Write-Output "$Prefix└── $name"
+            $childPrefix = $Prefix + "    "
+        } else {
+            Write-Output "$Prefix├── $name"
+            $childPrefix = $Prefix + $IndentChar
+        }
+
+        # Convert exclude folders to array
+        $excludeList = $ExcludeFolders -split ','
+
+        # Get all items except excluded folders
+        $items = Get-ChildItem -Path $Path -Force -ErrorAction SilentlyContinue | 
+                Where-Object { $_.Name -notin $excludeList } |
+                Sort-Object Name
+
+        if ($null -eq $items) {
+            return
+        }
+
+        $count = $items.Count
+        $i = 1
+
+        foreach ($item in $items) {
+            $isLast = ($i -eq $count)
+            
+            if ($item.PSIsContainer) {
+                # Recursively process directory
+                Get-DirectoryTree -Path $item.FullName -Prefix $childPrefix -LastItem:$isLast -ExcludeFolders $ExcludeFolders
+            } else {
+                # Output file with [BELUM] status
+                if ($isLast) {
+                    Write-Output "$childPrefix└── $($item.Name) [BELUM]"
+                } else {
+                    Write-Output "$childPrefix├── $($item.Name) [BELUM]"
+                }
+            }
+            $i++
+        }
+    }
+    catch {
+        Write-Error "Error processing path '$Path': $_"
+    }
+}
+
+try {
+    # Get absolute path
+    $rootPath = (Get-Item .).FullName
+    Get-DirectoryTree -Path $rootPath | Out-File -FilePath "direktori.txt" -Encoding UTF8
+    Write-Host "Directory tree has been saved to direktori.txt"
+}
+catch {
+    Write-Error "Failed to generate directory tree: $_"
+}

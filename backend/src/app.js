@@ -1,3 +1,4 @@
+// backend/src/app.js
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -5,23 +6,31 @@ import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import { RequestQueue } from './utils/queue.js';
 import { RecaptchaSolver } from './services/recaptchaSolver.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
 
-// Task storage
-const taskStore = new Map();
+const BACKEND_PORT = process.env.BACKEND_PORT || 3000;
+const FRONTEND_PORT = process.env.FRONTEND_PORT || 5173;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+const allowedOrigins = NODE_ENV === 'production' 
+    ? [`http://recaptcha-solver-frontend:${FRONTEND_PORT}`, `http://localhost:${FRONTEND_PORT}`]
+    : [`http://localhost:${FRONTEND_PORT}`, `http://127.0.0.1:${FRONTEND_PORT}`];
 
 const io = new Server(httpServer, {
     cors: {
-        origin: ['http://localhost:5173'],
+        origin: allowedOrigins,
         methods: ['GET', 'POST'],
         credentials: true
     }
 });
 
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
 }));
@@ -31,96 +40,59 @@ app.use(express.json());
 const queue = new RequestQueue(5);
 queue.setSocketIO(io);
 
-// Store task status
-const updateTaskStatus = (taskId, status, data = null) => {
-    if (!taskStore.has(taskId)) {
-        taskStore.set(taskId, {
-            status,
-            created: new Date(),
-            updated: new Date(),
-            data
-        });
-    } else {
-        const task = taskStore.get(taskId);
-        taskStore.set(taskId, {
-            ...task,
-            status,
-            updated: new Date(),
-            ...(data && { data })
-        });
+const validateApiKey = (req, res, next) => {
+    const { clientKey } = req.body;
+    if (!clientKey || clientKey !== '123456789') {
+        return res.status(401).json({ success: false, message: "Invalid API key" });
     }
+    next();
 };
 
-// WebSocket connection handling
 io.on('connection', (socket) => {
     console.log('Client connected');
-    
-    // Send initial stats
     socket.emit('stats', queue.getStats());
     
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-    });
-
-    // Listen for new task requests
     socket.on('createTask', async () => {
         try {
             const taskId = uuidv4();
-            const solver = new RecaptchaSolver();
-            
-            updateTaskStatus(taskId, 'processing');
-            
             queue.add(async () => {
-                const result = await solver.solve();
-                updateTaskStatus(taskId, result.success ? 'ready' : 'failed', result);
-                return result;
+                const solver = new RecaptchaSolver();
+                return await solver.solve();
             }, taskId);
             
-            socket.emit('taskCreated', { success: true, taskId });
+            socket.emit('taskCreated', { 
+                success: true, 
+                taskId,
+                timestamp: new Date()
+            });
         } catch (error) {
-            socket.emit('taskError', { success: false, error: error.message });
+            socket.emit('taskError', { 
+                success: false, 
+                error: error.message,
+                timestamp: new Date()
+            });
         }
     });
 });
 
-// Validate API Key middleware
-const validateApiKey = (req, res, next) => {
-    const { clientKey } = req.body;
-    
-    const validApiKeys = ['123456789']; // Replace with your actual API keys
-    
-    if (!clientKey || !validApiKeys.includes(clientKey)) {
-        return res.status(401).json({
-            success: 0,
-            message: "Invalid API key"
-        });
-    }
-    
-    next();
-};
-
-// REST API endpoints
 app.post('/api/createTask', validateApiKey, async (req, res) => {
     try {
         const taskId = uuidv4();
-        const solver = new RecaptchaSolver();
-        
-        updateTaskStatus(taskId, 'processing');
-        
         queue.add(async () => {
-            const result = await solver.solve();
-            updateTaskStatus(taskId, result.success ? 'ready' : 'failed', result);
-            return result;
+            const solver = new RecaptchaSolver();
+            return await solver.solve();
         }, taskId);
         
         res.json({
-            success: 1,
-            taskId
+            success: true,
+            taskId,
+            timestamp: new Date()
         });
     } catch (error) {
         res.status(500).json({
-            success: 0,
-            message: error.message
+            success: false,
+            message: error.message,
+            timestamp: new Date()
         });
     }
 });
@@ -128,116 +100,62 @@ app.post('/api/createTask', validateApiKey, async (req, res) => {
 app.post('/api/getTaskResult', validateApiKey, async (req, res) => {
     try {
         const { taskId } = req.body;
-        
         if (!taskId) {
-            return res.status(400).json({
-                success: 0,
-                message: "taskId is required"
-            });
+            return res.status(400).json({ success: false, message: "taskId required" });
         }
 
-        const task = taskStore.get(taskId);
+        const stats = queue.getStats();
+        const task = stats.taskHistory.find(t => t.taskId === taskId);
         
         if (!task) {
-            return res.status(404).json({
-                success: 0,
-                message: "Task not found"
-            });
+            return res.status(404).json({ success: false, message: "Task not found" });
         }
 
-        // Clean up old tasks
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        if (task.created < oneHourAgo) {
-            taskStore.delete(taskId);
-            return res.status(404).json({
-                success: 0,
-                message: "Task expired"
-            });
-        }
-
-        // Return result based on status
-        switch (task.status) {
-            case "processing":
-                return res.json({
-                    success: 1,
-                    message: "processing"
-                });
-            
-            case "ready":
-                return res.json({
-                    success: 1,
-                    message: "ready",
-                    solution: {
-                        gRecaptchaResponse: task.data.gRecaptchaResponse
-                    }
-                });
-            
-            case "failed":
-                return res.json({
-                    success: 0,
-                    message: "failed",
-                    error: task.data.error
-                });
-            
-            default:
-                return res.status(500).json({
-                    success: 0,
-                    message: "Unknown task status"
-                });
-        }
-
-    } catch (error) {
-        res.status(500).json({
-            success: 0,
-            message: error.message
+        const { status, data } = task;
+        
+        res.json({
+            success: data.result.token.success,
+            message: data.result.token.message,
+            status,
+            ...(data.result.token.gRecaptchaResponse && {
+                solution: { gRecaptchaResponse: data.result.token.gRecaptchaResponse }
+            }),
+            ...(data.result.token.error && { error: data.result.token.error }),
+            timestamp: new Date()
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
 app.get('/api/stats', (req, res) => {
-    res.json(queue.getStats());
+    res.json({
+        success: true,
+        stats: queue.getStats(),
+        timestamp: new Date()
+    });
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'ok',
         stats: queue.getStats(),
-        taskCount: taskStore.size
+        timestamp: new Date()
     });
 });
 
-// Task cleanup scheduler
-setInterval(() => {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    let cleanedCount = 0;
-    
-    for (const [taskId, task] of taskStore.entries()) {
-        if (task.created < oneHourAgo) {
-            taskStore.delete(taskId);
-            cleanedCount++;
-        }
-    }
-    
-    if (cleanedCount > 0) {
-        console.log(`Cleaned up ${cleanedCount} expired tasks`);
-    }
-}, 15 * 60 * 1000); // Run every 15 minutes
-
-// Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
     res.status(500).json({
-        success: 0,
+        success: false,
         message: 'Internal server error',
-        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        error: NODE_ENV === 'development' ? err.message : undefined,
+        timestamp: new Date()
     });
 });
 
-// Graceful shutdown handling
-const shutdown = async () => {
+const shutdown = () => {
     console.log('Shutting down gracefully...');
-    
     httpServer.close(() => {
         console.log('HTTP server closed');
         process.exit(0);
@@ -247,9 +165,6 @@ const shutdown = async () => {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-// Start server
-const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Health check available at: http://0.0.0.0:${PORT}/health`);
+httpServer.listen(BACKEND_PORT, '0.0.0.0', () => {
+    console.log(`Server running in ${NODE_ENV} mode on port ${BACKEND_PORT}`);
 });

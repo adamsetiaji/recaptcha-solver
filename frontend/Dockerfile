@@ -8,7 +8,7 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 5173
+EXPOSE ${FRONTEND_PORT:-5173}
 
 # Ganti command untuk development
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

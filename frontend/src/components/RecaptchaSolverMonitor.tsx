@@ -1,66 +1,236 @@
-import { FC, useEffect, useState, useCallback } from 'react';
+// frontend/scr/components/RecaptchaSolverMonitor.tsx
+import { FC, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import { ActivitySquare, Clock, CheckCircle, TrendingUp, Play, AlertCircle, Ban, Copy, Check, calculateAverageDuration } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ActivitySquare, Clock, CheckCircle, TrendingUp, LucideIcon, Play } from 'lucide-react';
 
-// Types
+
+const BACKEND_URL = import.meta.env.NODE_ENV === 'production'
+  ? import.meta.env.VITE_BACKEND_URL
+  : 'http://localhost:3000';
+
+const socket = io(BACKEND_URL);
+
 interface TaskStats {
   queueLength: number;
   activeWorkers: number;
   maxParallel: number;
   completedTasks: number;
   successRate: number;
+  taskHistory: Array<{
+    taskId: string;
+    status: string;
+    timestamp: string;
+    data: {
+      result: {
+        token: {
+          success: boolean;
+          message: string;
+          gRecaptchaResponse?: string;
+          error?: string;
+        };
+        queueLength: number;
+        activeWorkers: number;
+        startTime: string;
+        endTime?: string;
+        duration?: number;
+      };
+    };
+  }>;
 }
 
-interface PerformanceData {
-  time: string;
-  totalTasks: number;
-  successfulTasks: number;
-}
+const CopyButton: FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
 
-interface DashboardMetricProps {
-  icon: LucideIcon;
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="ml-2 p-1 rounded hover:bg-gray-100 transition-colors"
+    >
+      {copied ? (
+        <Check className="w-4 h-4 text-green-500" />
+      ) : (
+        <Copy className="w-4 h-4 text-gray-400" />
+      )}
+    </button>
+  );
+};
+
+
+
+
+const TaskHistoryItem: FC<{ task: TaskStats['taskHistory'][0] }> = ({ task }) => {
+  return (
+    <div className="p-4 border-b last:border-b-0">
+      <div className="flex justify-between items-start">
+        <div>
+          <span className={`px-2 py-1 rounded-full text-sm ${getStatusColor(task.status)}`}>
+            {task.status}
+          </span>
+
+          <span className="ml-2 text-sm px-2 py-1 text-gray-600 rounded-full">
+            {task.data.result.token.message}
+          </span>
+
+          <span className="ml-2 text-sm text-gray-600 flex items-center">
+            ID: {task.taskId}
+            <CopyButton text={task.taskId} />
+          </span>
+
+          {task.data.result.duration && (
+            <span className="ml-2 text-sm text-gray-500">
+              Duration: {Math.floor(task.data.result.duration / 1000)}s
+            </span>
+          )}
+
+          {task.data.result.token.gRecaptchaResponse && (
+            <div className="mt-2 text-sm text-gray-600 flex items-center">
+              <span className="ml-2 text-gray-500">
+                Token: {task.data.result.token.gRecaptchaResponse.substring(0, 20)}...
+              </span>
+              <CopyButton text={task.data.result.token.gRecaptchaResponse} />
+            </div>
+          )}
+
+          {task.data.result.token.error && (
+            <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {task.data.result.token.error}
+            </div>
+          )}
+        </div>
+
+        <span className="text-sm text-gray-500">
+          {new Date(task.timestamp).toLocaleTimeString()}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'completed': return 'bg-green-100 text-green-800';
+    case 'failed': return 'bg-red-100 text-red-800';
+    case 'processing': return 'bg-blue-100 text-blue-800';
+    case 'queued': return 'bg-yellow-100 text-yellow-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const calculateAverageDuration = (tasks: TaskStats['taskHistory']) => {
+  const completedTasks = tasks.filter(task => task.status === 'completed');
+  if (completedTasks.length === 0) return 0;
+
+  const totalDuration = completedTasks.reduce((sum, task) =>
+    sum + (task.data.result.duration ? Math.floor(task.data.result.duration / 1000) : 0), 0);
+
+  return Math.round(totalDuration / completedTasks.length);
+};
+
+const PerformanceChart: FC<{ tasks: TaskStats['taskHistory'] }> = ({ tasks }) => {
+  const chartData = tasks.map((task, index, array) => {
+    const completedTasksUpToNow = array.slice(0, index + 1).filter(t => t.status === 'completed');
+    const avgDuration = completedTasksUpToNow.length > 0
+      ? completedTasksUpToNow.reduce((sum, t) =>
+        sum + (t.data.result.duration ? Math.floor(t.data.result.duration / 1000) : 0), 0)
+      / completedTasksUpToNow.length
+      : 0;
+
+    return {
+      time: new Date(task.timestamp).toLocaleTimeString(),
+      activeWorkers: task.data.result.activeWorkers,
+      queueLength: task.data.result.queueLength,
+      taskSuccess: array.slice(0, index + 1).filter(t => t.status === 'completed').length,
+      taskFailed: array.slice(0, index + 1).filter(t => t.status === 'failed').length,
+      avgDuration: Math.round(avgDuration),
+    };
+  }).reverse();
+
+  return (
+    <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
+      <h2 className="text-lg font-semibold mb-4">Performance Graph</h2>
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="time"
+              tick={{ fontSize: 12 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              yAxisId="left"
+              label={{ value: 'Count', angle: -90, position: 'insideLeft' }}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              label={{ value: 'Avg Duration (s)', angle: 90, position: 'insideRight' }}
+            />
+            <Tooltip />
+            <Legend />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="activeWorkers"
+              stroke="#3B82F6"
+              name="Active Workers"
+              dot={false}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="queueLength"
+              stroke="#EAB308"
+              name="Tasks in Queue"
+              dot={false}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="taskSuccess"
+              stroke="#22C55E"
+              name="Tasks Success"
+              dot={false}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="taskFailed"
+              stroke="#EF4444"
+              name="Tasks Failed"
+              dot={false}
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="avgDuration"
+              stroke="#8B5CF6"
+              name="Avg Solve Duration"
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
+
+
+const DashboardMetric: FC<{
+  icon: typeof Clock;
   title: string;
   value: string | number;
   color: string;
-}
-
-// Socket.io setup
-const BACKEND_URL = import.meta.env.PROD 
-  ? 'https://yourproduction.domain' 
-  : 'http://localhost:3000';
-
-const socket = io(BACKEND_URL);
-
-// API client functions
-const createTask = async () => {
-  const response = await fetch(`${BACKEND_URL}/api/createTask`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      clientKey: '123456789' // Replace with actual API key management
-    })
-  });
-  return response.json();
-};
-
-const getTaskResult = async (taskId: string) => {
-  const response = await fetch(`${BACKEND_URL}/api/getTaskResult`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      clientKey: '123456789', // Replace with actual API key management
-      taskId
-    })
-  });
-  return response.json();
-};
-
-const DashboardMetric: FC<DashboardMetricProps> = ({ icon: Icon, title, value, color }) => (
+}> = ({ icon: Icon, title, value, color }) => (
   <div className="bg-white rounded-lg p-6 shadow-sm">
     <div className="flex items-center gap-4">
       <div className={`p-2 rounded-full ${color}`}>
@@ -74,98 +244,41 @@ const DashboardMetric: FC<DashboardMetricProps> = ({ icon: Icon, title, value, c
   </div>
 );
 
+
 const RecaptchaSolverMonitor: FC = () => {
   const [stats, setStats] = useState<TaskStats>({
     queueLength: 0,
     activeWorkers: 0,
     maxParallel: 5,
     completedTasks: 0,
-    successRate: 0
+    successRate: 0,
+    taskHistory: []
   });
 
   const [isConnected, setIsConnected] = useState(false);
-  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
-  const [currentTask, setCurrentTask] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const pollTaskResult = useCallback(async (taskId: string) => {
-    try {
-      const result = await getTaskResult(taskId);
-      if (result.message === 'ready') {
-        setIsProcessing(false);
-        setCurrentTask(null);
-        // Handle successful result
-        console.log('Task completed:', result.solution.gRecaptchaResponse);
-      } else if (result.message === 'processing') {
-        // Continue polling
-        setTimeout(() => pollTaskResult(taskId), 2000);
-      } else {
-        setIsProcessing(false);
-        setCurrentTask(null);
-        console.error('Task failed:', result.error);
-      }
-    } catch (error) {
-      console.error('Error polling task:', error);
-      setIsProcessing(false);
-      setCurrentTask(null);
-    }
-  }, []);
-
-  const handleStartTask = async () => {
-    if (isProcessing) return;
-    
-    try {
-      setIsProcessing(true);
-      const response = await createTask();
-      if (response.success) {
-        setCurrentTask(response.taskId);
-        pollTaskResult(response.taskId);
-      } else {
-        console.error('Failed to create task:', response.message);
-        setIsProcessing(false);
-      }
-    } catch (error) {
-      console.error('Error creating task:', error);
-      setIsProcessing(false);
-    }
-  };
-
   useEffect(() => {
-    // Socket event handlers
-    socket.on('connect', () => {
-      setIsConnected(true);
-    });
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/stats`);
+        const data = await response.json();
+        if (data.success) setStats(data.stats);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
 
-    socket.on('disconnect', () => {
-      setIsConnected(false);
-    });
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000);
 
-    socket.on('stats', (newStats: TaskStats) => {
-      setStats(newStats);
-    });
-
-    socket.on('taskUpdate', (update: any) => {
-      // Update performance data
-      setPerformanceData(prev => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString();
-        
-        // Calculate new values
-        const totalTasks = prev[prev.length - 1]?.totalTasks + 1 || 1;
-        const successfulTasks = prev[prev.length - 1]?.successfulTasks + 
-          (update.status === 'completed' ? 1 : 0);
-
-        const newPoint = {
-          time: timeStr,
-          totalTasks,
-          successfulTasks
-        };
-
-        return [...prev, newPoint].slice(-20); // Keep last 20 points
-      });
-    });
+    socket.on('connect', () => setIsConnected(true));
+    socket.on('disconnect', () => setIsConnected(false));
+    socket.on('stats', setStats);
+    socket.on('taskUpdate', update => update.stats && setStats(update.stats));
 
     return () => {
+      clearInterval(interval);
       socket.off('connect');
       socket.off('disconnect');
       socket.off('stats');
@@ -173,101 +286,104 @@ const RecaptchaSolverMonitor: FC = () => {
     };
   }, []);
 
+  const handleStartTask = async () => {
+    if (isProcessing) return;
+
+    try {
+      setIsProcessing(true);
+      await fetch(`${BACKEND_URL}/api/createTask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientKey: '123456789' })
+      });
+    } catch (error) {
+      console.error('Error creating task:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold mb-2">reCAPTCHA Solver Monitor</h1>
-          <div className={`inline-flex items-center px-3 py-1 rounded-full ${
-            isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            <span className={`w-2 h-2 rounded-full mr-2 ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}></span>
+          <div className={`inline-flex items-center px-3 py-1 rounded-full ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}>
+            <span className={`w-2 h-2 rounded-full mr-2 ${isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`} />
             {isConnected ? 'System Active' : 'System Inactive'}
           </div>
         </div>
-        
+
         <button
           onClick={handleStartTask}
           disabled={isProcessing}
-          className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-            isProcessing 
-              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-500 text-white hover:bg-blue-600'
-          }`}
+          className={`px-4 py-2 rounded-lg flex items-center gap-2 ${isProcessing
+            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
         >
           <Play className="w-4 h-4" />
           {isProcessing ? 'Processing...' : 'Start Task'}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <DashboardMetric 
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6 mb-8">
+        <DashboardMetric
           icon={Clock}
           title="Active Workers"
           value={stats.activeWorkers}
           color="bg-blue-500"
         />
-        <DashboardMetric 
+        <DashboardMetric
           icon={ActivitySquare}
           title="Tasks in Queue"
           value={stats.queueLength}
           color="bg-yellow-500"
         />
-        <DashboardMetric 
+        <DashboardMetric
+          icon={CheckCircle}
+          title="Tasks Success"
+          value={stats.taskHistory.filter(t => t.status === 'completed').length}
+          color="bg-green-500"
+        />
+        <DashboardMetric
+          icon={Ban}
+          title="Tasks Failed"
+          value={stats.taskHistory.filter(t => t.status === 'failed').length}
+          color="bg-red-500"
+        />
+        <DashboardMetric
           icon={CheckCircle}
           title="Completed Tasks"
           value={stats.completedTasks}
-          color="bg-green-500"
+          color="bg-cyan-500"
         />
-        <DashboardMetric 
+        <DashboardMetric
           icon={TrendingUp}
           title="Success Rate"
           value={`${stats.successRate}%`}
           color="bg-purple-500"
         />
+        <DashboardMetric
+          icon={Clock}
+          title="Average Duration"
+          value={`${calculateAverageDuration(stats.taskHistory)}s`}
+          color="bg-indigo-500"
+        />
       </div>
 
+      <PerformanceChart tasks={stats.taskHistory} />
+
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">Task Performance</h2>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={performanceData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="totalTasks" 
-                stroke="#3B82F6" 
-                name="Total Tasks"
-                dot={false}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="successfulTasks" 
-                stroke="#10B981" 
-                name="Successful Tasks"
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <h2 className="text-lg font-semibold mb-4">Task History</h2>
+        <div className="h-80 overflow-y-auto">
+          {stats.taskHistory.map(task => (
+            <TaskHistoryItem key={task.taskId} task={task} />
+          ))}
         </div>
       </div>
-      
-      {currentTask && (
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <p className="text-blue-800">
-            Current Task ID: {currentTask}
-          </p>
-        </div>
-      )}
     </div>
   );
 };

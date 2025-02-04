@@ -21,10 +21,8 @@ COPY libs/rektCaptcha libs/rektCaptcha/
 RUN npx playwright install chromium
 RUN npx playwright install-deps
 
-# Expose ports
-# Node.js app
-EXPOSE 3000  
-# VNC server
-EXPOSE 5900  
+EXPOSE ${BACKEND_PORT:-3000}
+EXPOSE ${VNC_PORT:-5900}
+
 
 CMD ["./start.sh"]

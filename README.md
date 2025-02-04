@@ -55,7 +55,7 @@ services:
     hostname: recaptcha-solver-backend
     image: adamsetiaji/recaptcha-solver-backend:latest
     labels:
-      icon: https://raw.githubusercontent.com/adamsetiaji/recaptcha-solver/refs/heads/master/recaptcha-solver.png
+      icon: https://raw.githubusercontent.com/adamsetiaji/list-logo/refs/heads/main/recaptcha-solver.png
     ports:
       - target: 3000
         published: "3000"
@@ -90,7 +90,7 @@ services:
     hostname: recaptcha-solver-frontend
     image: adamsetiaji/recaptcha-solver-frontend:latest
     labels:
-      icon: https://raw.githubusercontent.com/adamsetiaji/recaptcha-solver/refs/heads/master/recaptcha-solver.png
+      icon: https://raw.githubusercontent.com/adamsetiaji/list-logo/refs/heads/main/recaptcha-solver.png
     ports:
       - target: 5173
         published: "5173"
@@ -113,7 +113,7 @@ x-casaos:
   author: self
   category: self
   hostname: ""
-  icon: https://raw.githubusercontent.com/adamsetiaji/recaptcha-solver/refs/heads/master/recaptcha-solver.png
+  icon: https://raw.githubusercontent.com/adamsetiaji/list-logo/refs/heads/main/recaptcha-solver.png
   index: /
   is_uncontrolled: false
   port_map: "5173"

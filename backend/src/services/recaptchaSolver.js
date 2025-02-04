@@ -42,57 +42,36 @@ export class RecaptchaSolver {
             bypassCSP: true
         };
 
-        // Add extensions if they exist
         if (this.extensions.length > 0) {
-            const disableExtensionsExcept = this.extensions.join(',');
-            const loadExtensions = this.extensions.join(',');
             browserOptions.args.push(
-                `--disable-extensions-except=${disableExtensionsExcept}`,
-                `--load-extension=${loadExtensions}`
+                `--disable-extensions-except=${this.extensions.join(',')}`,
+                `--load-extension=${this.extensions.join(',')}`
             );
         }
 
-        console.log('Launching browser with display:', process.env.DISPLAY);
         return await chromium.launchPersistentContext('', browserOptions);
     }
 
     async handleRecaptcha(page) {
-        console.log('Waiting for reCAPTCHA to be checked...');
         let attempt = 0;
 
         while (attempt < this.retryCount) {
             try {
-                await page.waitForSelector('iframe[title="reCAPTCHA"]', {
-                    timeout: 10000,
-                    state: 'attached'
-                });
-
+                await page.waitForSelector('iframe[title="reCAPTCHA"]', { timeout: 10000 });
                 const recaptchaFrame = page.frameLocator('iframe[title="reCAPTCHA"]');
-                console.log('iframe reCAPTCHA Found');
-
-                await recaptchaFrame.locator('#recaptcha-anchor').waitFor({
-                    state: 'visible',
-                    timeout: 10000
-                });
-
+                
+                await recaptchaFrame.locator('#recaptcha-anchor').waitFor({ state: 'visible', timeout: 10000 });
                 await randomDelay(1000, 2000);
                 await recaptchaFrame.locator('#recaptcha-anchor').click();
 
-                // Wait for the reCAPTCHA to be solved
-                await recaptchaFrame.locator('#recaptcha-anchor[aria-checked="true"]').waitFor({
-                    timeout: 120000
-                });
+                await recaptchaFrame.locator('#recaptcha-anchor[aria-checked="true"]').waitFor({ timeout: 120000 });
 
-                console.log('reCAPTCHA successfully checked!');
-
-                // Get reCAPTCHA response token
                 const gRecaptchaResponse = await page.evaluate(() => {
                     const gRecaptchaValue = document.querySelector('#g-recaptcha-response');
                     return gRecaptchaValue ? gRecaptchaValue.value : null;
                 });
 
                 if (gRecaptchaResponse) {
-                    console.log('Got reCAPTCHA response');
                     return gRecaptchaResponse;
                 }
 
@@ -103,7 +82,6 @@ export class RecaptchaSolver {
                 console.log(`reCAPTCHA attempt ${attempt} failed:`, error);
                 
                 if (attempt < this.retryCount) {
-                    console.log(`Waiting ${this.retryDelay/1000} seconds before retrying...`);
                     await new Promise(resolve => setTimeout(resolve, this.retryDelay));
                 }
             }
@@ -119,51 +97,36 @@ export class RecaptchaSolver {
             password: 'GunungSumbing@2017'
         };
 
-        try {
-            // Wait for form fields to be present
-            await page.waitForSelector('input[name="login"]', { timeout: 10000 });
-            await page.waitForSelector('input[name="email"]', { timeout: 10000 });
-            await page.waitForSelector('input[name="password"]', { timeout: 10000 });
+        await page.waitForSelector('input[name="login"]', { timeout: 10000 });
+        await page.waitForSelector('input[name="email"]', { timeout: 10000 });
+        await page.waitForSelector('input[name="password"]', { timeout: 10000 });
 
-            // Fill form with random delays
-            await randomDelay(1000, 2000);
-            await page.fill('input[name="login"]', userData.name);
-            
-            await randomDelay(500, 1500);
-            await page.fill('input[name="email"]', userData.email);
-            
-            await randomDelay(700, 1700);
-            await page.fill('input[name="password"]', userData.password);
-            
-            await randomDelay(500, 1000);
-            await page.keyboard.press("Enter");
-
-            console.log('Form filled successfully');
-        } catch (error) {
-            console.error('Error filling form:', error);
-            throw error;
-        }
+        await randomDelay(1000, 2000);
+        await page.fill('input[name="login"]', userData.name);
+        await randomDelay(500, 1500);
+        await page.fill('input[name="email"]', userData.email);
+        await randomDelay(700, 1700);
+        await page.fill('input[name="password"]', userData.password);
+        await randomDelay(500, 1000);
+        await page.keyboard.press("Enter");
     }
 
     async solve() {
         let browser;
         try {
-            console.log('Initializing browser...');
             browser = await this.initBrowser();
             const page = await browser.newPage();
 
-            console.log(`Navigating to ${this.registrationUrl}`);
             await page.goto(this.registrationUrl, {
                 waitUntil: 'domcontentloaded',
                 timeout: 30000
             });
-            console.log('Page loaded');
 
             await this.fillForm(page);
             const recaptchaToken = await this.handleRecaptcha(page);
 
             return {
-                success: 1,
+                success: true,
                 message: "ready",
                 gRecaptchaResponse: recaptchaToken
             };
@@ -171,7 +134,7 @@ export class RecaptchaSolver {
         } catch (error) {
             console.error('Error in solve:', error);
             return {
-                success: 0,
+                success: false,
                 message: "failed",
                 error: error.message
             };

@@ -64,7 +64,7 @@ COPY --from=backend-build /app/backend/ ./backend/
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 # Expose ports
-EXPOSE 3000 5173
+EXPOSE ${BACKEND_PORT:-3000} ${FRONTEND_PORT:-5173}
 
 # Set environment
 ENV NODE_ENV=development
