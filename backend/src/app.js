@@ -14,23 +14,23 @@ const app = express();
 const httpServer = createServer(app);
 
 const BACKEND_PORT = process.env.BACKEND_PORT || 3000;
-const FRONTEND_PORT = process.env.FRONTEND_PORT || 5173;
+// const FRONTEND_PORT = process.env.FRONTEND_PORT || 5173;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-const allowedOrigins = NODE_ENV === 'production' 
-    ? [`http://recaptcha-solver-frontend:${FRONTEND_PORT}`, `http://localhost:${FRONTEND_PORT}`]
-    : [`http://localhost:${FRONTEND_PORT}`, `http://127.0.0.1:${FRONTEND_PORT}`];
+// const allowedOrigins = NODE_ENV === 'production' 
+//     ? [`http://recaptcha-solver-frontend:${FRONTEND_PORT}`, `http://localhost:${FRONTEND_PORT}`]
+//     : [`http://localhost:${FRONTEND_PORT}`, `http://127.0.0.1:${FRONTEND_PORT}`];
 
 const io = new Server(httpServer, {
     cors: {
-        origin: allowedOrigins,
+        origin: "*",
         methods: ['GET', 'POST'],
         credentials: true
     }
 });
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: "*",
     methods: ['GET', 'POST'],
     credentials: true
 }));

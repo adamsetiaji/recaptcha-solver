@@ -10,7 +10,6 @@ services:
     environment:
       - NODE_ENV=development
       - BACKEND_PORT=3000
-      - FRONTEND_PORT=5173
       - VNC_PORT=5900
       - DISPLAY=:99
     networks:
@@ -31,7 +30,9 @@ services:
       - "5173:5173"
     environment:
       - NODE_ENV=development
-      - VITE_BACKEND_URL=http://backend:3000
+      - VITE_FRONTEND_PORT=5173
+      - VITE_BACKEND_URL=http://localhost:3000
+      - VITE_ALLOWED_HOSTS=localhost
     networks:
       - app-network
     depends_on:
