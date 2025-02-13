@@ -28,7 +28,7 @@ export class RequestQueue extends EventEmitter {
                 result: {
                     token: status === 'completed' ? {
                         success: true,
-                        message: this.getMessageFromStatus(status),
+                        message: data?.result?.gRecaptchaResponse ? 'ready' : 'failed',
                         gRecaptchaResponse: data?.result?.gRecaptchaResponse
                     } : status === 'failed' ? {
                         success: false,
